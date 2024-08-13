@@ -23,7 +23,7 @@ Trend Comparison (Data Analysis and visualization): Calculate spending trends ov
 5.	Goal Setting:
 -	Allow users to set financial goals (e.g., savings targets) and track progress towards these goals.
 
-Target Audience:
+# Target Audience:
 Individuals and families:
 -	Young professionals managing personal finances.
 -	Students tracking expenses for better budgeting.
