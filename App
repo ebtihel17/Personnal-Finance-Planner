@@ -1,0 +1,351 @@
+import dash
+from dash import dcc, html
+import dash_bootstrap_components as dbc
+from dash.dependencies import Input, Output, State
+import datetime as dt
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+
+
+
+app=dash.Dash(__name__, external_stylesheets=[dbc.themes.QUARTZ])
+
+
+
+# Loading the saved model
+
+import pickle
+model_path = r'C:\Users\Client\PycharmProjects\personal-finances\svm_model.pkl'
+
+# Loading the saved model
+with open(model_path, 'rb') as file:
+    model = pickle.load(file)
+
+
+
+# Function to predict category
+def predict_category(description):
+    return model.predict([description])[0]
+
+
+
+# categories
+categories = [
+    'Housing', 'Groceries', 'Utilities', 'Fitness', 'Dining Out', 'Education',
+    'Entertainment', 'Transportation', 'Insurance', 'Miscellaneous', 'Health',
+    'Travel', 'Shopping', 'Pets', 'Gifts', 'Other'
+]
+
+
+
+# Initialize DataFrames
+budgets_df = pd.DataFrame(columns=['Category', 'Amount'])
+expenses_df = pd.DataFrame(columns=['Date', 'Description', 'Category', 'Amount'])
+
+
+#layout
+app.layout = html.Div([
+
+    dbc.Navbar(
+        dbc.Container([
+            dbc.NavbarBrand("Personal Finance Planner", className="mx-auto", style={
+                'fontWeight': 'bold',
+                'fontSize': '40px'
+            })
+        ]),
+        color="primary",
+        dark=True
+    ),
+
+    html.Hr(),
+
+    dbc.Card(
+        dbc.CardBody([
+            html.Div("The Personal Finance Planner aims to assist users in effectively managing their personal finances "
+                 "and budgets. It features budget tracking, expense categorization using machine learning algorithms,"
+                 " and visualizations of spending patterns over time. ")
+        ], style={ 'fontSize': '18px' })
+    ),
+
+    html.Hr(),
+
+
+    html.Div(
+        html.H2("Budget Tracking", style={"textAlign": "center", "margin": "20"}),
+        style={"backgroundColor": "#09bced", "padding": "5px", "height": "60px", "marginTop": "20px",
+               "marginBottom": "20px", 'border-radius': '5px' }
+    ),
+
+    # Budget Setting Section
+
+    dbc.Row([
+       html.H3("Budget Setting", className="mt-4"),
+       dbc.Col([
+          dbc.Card(
+            dbc.CardBody([
+                html.Label("Category:", style={"font-weight": "bold", "display": "block", "margin-bottom": "5px"}),
+                dcc.Dropdown(
+                    id='budget-category-dropdown',
+                    options=[{'label': cat, 'value': cat} for cat in categories],
+                    value='Groceries',
+                    style={"margin-bottom": "15px"}
+                ),
+                html.Label("Budget Amount:", style={"font-weight": "bold", "display": "block", "margin-bottom": "5px"}),
+                dcc.Input(
+                    id='budget-amount-input',
+                    type='number',
+                    value=0,
+                    style={"margin-bottom": "15px"}
+                ),
+                html.Div(
+                    html.Button('Set Monthly Budget', id='set-budget-button', className="btn btn-primary", n_clicks=0),
+                    style={"text-align": "center", "margin-top": "10px"}
+                ),
+                html.Div(id='budget-output-container', style={"margin-top": "10px"}),
+            ]),
+            style={ "padding": "20px"}
+        ),
+    ], width=5),
+
+
+        dbc.Col([
+            dbc.Card(
+                dbc.CardBody([
+                    html.H3("Budgets"),
+                    html.Div(id='budgets-table'),
+                ])
+            ),
+        ], width=7),
+    ]),
+
+    html.H3("Transactions", className="mt-4"),
+
+dbc.Row([
+    dbc.Col([
+        dbc.Card(
+            dbc.CardBody([
+                html.Label('Transaction Date', style={"font-weight": "bold", "display": "block", "margin-bottom": "5px"}),
+                dcc.DatePickerSingle(
+                    id='transaction-date-picker',
+                    date=dt.date.today(),
+                    style={"margin-bottom": "15px"}
+                ),
+                html.Label("Transaction Description:", style={"font-weight": "bold", "display": "block", "margin-bottom": "5px"}),
+                dcc.Input(
+                    id='transaction-description-input',
+                    type='text',
+                    value='',
+                    style={"margin-bottom": "15px"}
+                ),
+                html.Label("Transaction Amount:", style={"font-weight": "bold", "display": "block", "margin-bottom": "5px"}),
+                dcc.Input(
+                    id='transaction-amount-input',
+                    type='number',
+                    value=0,
+                    style={"margin-bottom": "15px"}
+                ),
+                html.Div(
+                    html.Button('Add Transaction', id='add-transaction-button', className="btn btn-primary", n_clicks=0),
+                    style={"text-align": "center", "margin-top": "10px"}
+                ),
+                html.Div(id='transaction-output-container', style={"margin-top": "10px"}),
+            ]),
+            style={ "padding": "20px"}
+        ),
+    ], width=4),
+
+
+    
+
+        dbc.Col([
+            dbc.Card(
+                dbc.CardBody([
+                    html.H3("Expenses"),
+                    html.Div(id='expenses-table'),
+                ])
+            ),
+        ], width=8),
+    ]),
+
+    html.H3("Alerts", className="mt-4"),
+
+    html.Div(
+    [
+        html.Div(
+            [
+                html.H4("Warning!", className="alert-heading"),
+                html.Div(id='alerts-output')
+            ],
+            className="alert alert-dismissible alert-warning",
+            style={"position": "relative"}
+        )
+    ]
+     ),
+
+
+    # Title in a pastel blue box
+    html.Div(
+    html.H2("Visualizations", style={ "textAlign": "center", "margin": "20"}),
+    style={"backgroundColor": "#09bced", "padding": "5px", "height": "60px", "marginTop": "55px",
+               "marginBottom": "50px", 'border-radius': '5px' }
+    ),
+
+
+    dbc.Card(
+        dbc.CardBody([
+
+            html.H3("Spending Over Time", style={ 'display': 'inline-block', 'margin-left': '5px'}),
+            dcc.Graph(id='spending-over-time'),
+            dcc.Graph(id='category-spending-over-time'),
+
+            html.Hr(),
+
+            html.H3("Category Comparison"),
+            dcc.Graph(id='category-comparison-bar'),
+            dcc.Graph(id='category-comparison-pie'),
+
+            html.Hr(),
+
+            html.H3("Budget Tracking"),
+            html.H4("Overall Budget"),
+            dcc.Graph(id='overall-budget-gauge'),
+            html.Div(id='overall-budget-progress'),
+
+            html.H4("Per Category"),
+            html.Div(id='category-gauge-charts'),
+        ])
+    ),
+
+
+
+],style={'margin-left': '4%', 'margin-right': '4%', 'margin-top': '10px'})
+
+
+
+
+
+# Callback to update budgets
+@app.callback(
+    [Output('budget-output-container', 'children'),
+     Output('budgets-table', 'children')],
+    Input('set-budget-button', 'n_clicks'),
+    [State('budget-category-dropdown', 'value'),
+     State('budget-amount-input', 'value')]
+)
+def update_budgets(n_clicks, category, amount):
+    if n_clicks > 0:
+        global budgets_df
+        new_row = pd.DataFrame({'Category': [category], 'Amount': [amount]})
+        budgets_df = pd.concat([budgets_df, new_row], ignore_index=True)
+        table = dbc.Table.from_dataframe(budgets_df, striped=True, bordered=True, hover=True)
+        return f"Set budget for {category}: ${amount}", table
+    return "", dbc.Table.from_dataframe(budgets_df, striped=True, bordered=True, hover=True)
+
+# Callback to update transactions
+@app.callback(
+    [Output('transaction-output-container', 'children'),
+     Output('expenses-table', 'children'),
+     Output('alerts-output', 'children'),
+     Output('spending-over-time', 'figure'),
+     Output('category-spending-over-time', 'figure'),
+     Output('category-comparison-bar', 'figure'),
+     Output('category-comparison-pie', 'figure'),
+     Output('overall-budget-gauge', 'figure'),
+     Output('overall-budget-progress', 'children'),
+     Output('category-gauge-charts', 'children')
+     ],
+    Input('add-transaction-button', 'n_clicks'),
+    [State('transaction-description-input', 'value'),
+     State('transaction-amount-input', 'value'),
+     State('transaction-date-picker', 'date')]
+)
+
+
+def update_transactions(n_clicks, description, amount, date):
+    global expenses_df
+
+    if n_clicks > 0 and description and amount and date:
+        category = predict_category(description)
+        new_row = pd.DataFrame({'Date': [date], 'Description': [description], 'Category': [category], 'Amount': [amount]})
+        expenses_df = pd.concat([expenses_df, new_row], ignore_index=True)
+        expenses_table = dbc.Table.from_dataframe(expenses_df, striped=True, bordered=True, hover=True)
+
+        budget_dict = dict(zip(budgets_df['Category'], budgets_df['Amount']))
+        expenses_sum = expenses_df.groupby('Category')['Amount'].sum().to_dict()
+
+
+        alerts = []
+        threshold = 0.70
+        for cat in budget_dict:
+            budget_amount = budget_dict.get(cat, 0)
+            total_expenses = expenses_sum.get(cat, 0)
+            remaining_budget = budget_amount - total_expenses
+            if budget_amount > 0 and total_expenses / budget_amount > threshold:
+                alerts.append(html.Div(f"Alert: Nearing budget limit for {cat}. Remaining: ${remaining_budget:.2f}"))
+
+
+        # Overall Spending Over Time
+        expenses_df['Date'] = pd.to_datetime(expenses_df['Date'])
+        overall_spending = expenses_df.groupby('Date')['Amount'].sum().reset_index()
+        spending_fig = px.line(overall_spending, x='Date', y='Amount', title='Overall Spending Over Time')
+
+
+        # Category Spending Over Time
+
+        category_spending = expenses_df.groupby(['Date', 'Category'])['Amount'].sum().reset_index()
+        category_spending_fig = px.line(category_spending, x='Date', y='Amount', color='Category',
+                                        title='Category Spending Over Time')
+
+        # Category Comparison Bar and Pie Charts
+        category_spending_total = expenses_df.groupby('Category')['Amount'].sum().reset_index()
+        bar_fig = px.bar(category_spending_total, x='Category', y='Amount', title='Total Spending by Category' )
+        pie_fig = px.pie(category_spending_total, names='Category', values='Amount', color='Category',
+                         title='Spending Proportions by Category')
+
+        # Overall Budget Gauge Chart
+        total_budget = budgets_df['Amount'].sum()
+        total_spending = expenses_df['Amount'].sum()
+        overall_gauge_fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=total_spending,
+            title={'text': "Overall Budget"},
+            gauge={'axis': {'range': [None, total_budget]},
+                   'bar': {'color': "red" if total_spending > total_budget else "green"}}
+        ))
+
+        # Overall Budget Progress Bar
+        overall_progress = min(total_spending / total_budget, 1.0) if total_budget > 0 else 0
+        overall_progress_bar = dbc.Progress(f"${total_spending:.2f} of ${total_budget:.2f}",
+                                            value=overall_progress * 100,
+                                            color="success" if overall_progress < 1 else "danger")
+
+        # Gauge Chart for Each Category
+        gauge_charts = []
+        for cat in budget_dict:
+            total_expenses = expenses_sum.get(cat, 0)
+            budget_amount = budget_dict.get(cat, 1)
+            gauge_chart = dcc.Graph(figure=go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=total_expenses,
+                title={'text': f"{cat} Budget"},
+                gauge={
+                    'axis': {'range': [None, budget_amount]},
+                    'bar': {'color': "red" if total_expenses > budget_amount else "green"}
+                }
+            )))
+            gauge_charts.append(gauge_chart)
+
+        return f"Added transaction for {category}: ${amount}", expenses_table, alerts, spending_fig, category_spending_fig, bar_fig, pie_fig, overall_gauge_fig, overall_progress_bar, gauge_charts
+
+    # Empty Figures Initialization
+    spending_fig = px.line(title='Overall Spending Over Time')
+    category_spending_fig = px.line(title='Category Spending Over Time')
+    bar_fig = px.bar(title='Total Spending by Category')
+    pie_fig = px.pie(title='Spending Proportions by Category')
+    overall_gauge_fig = go.Figure()
+
+    return "", dbc.Table.from_dataframe(expenses_df, striped=True, bordered=True, hover=True), [], spending_fig, category_spending_fig, bar_fig, pie_fig, overall_gauge_fig, [], []
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
