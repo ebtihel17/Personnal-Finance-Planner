@@ -1,0 +1,46 @@
+import pandas as pd
+from sklearn.pipeline import make_pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics import accuracy_score, classification_report
+from joblib import dump
+import pickle
+
+
+# Loading data
+dataset = pd.read_excel(r'C:\Users\Client\Downloads\transaction data.xlsx')
+
+# Defining target variable
+y = dataset['category']
+X = dataset['description']
+
+# Splitting data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+
+# Creating pipeline
+pipeline = make_pipeline(
+    CountVectorizer(),
+           SVC(kernel='linear', random_state=0)
+
+)
+
+# model training
+pipeline.fit(X_train, y_train)
+
+# Make predictions
+prediction = pipeline.predict(X_test)
+
+#  model evaluation
+accuracy = accuracy_score(y_test, prediction)
+report = classification_report(y_test, prediction)
+
+print(f"Accuracy: {accuracy}")
+print("Classification Report:")
+print(report)
+
+
+# Saving the model
+with open('svm_model.pkl', 'wb') as file:
+    pickle.dump(pipeline, file)
+print("Model saved ")
